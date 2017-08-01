@@ -47,7 +47,7 @@ function buy_img(message, folder){
       message.channel.send(`${message.author.username} только что приобрел фото из пака "${folder}" за 5 метакоинов`);
       stats[message.author.username] -= 5;
       write_stats()
-    })
+    });
   } else { return message.author.send(`У вас недостаточно метакоинов для выполнения команды`); }
 }
 function buy(message,cost){
@@ -83,36 +83,45 @@ client.on('message', message => {
     started = true;
   } else if (/^(?:\d{6})$/.test(message.content)) {
     if (started == null) { return message.channel.send(`Бампалка еще не запущена`); }
-    var formData = {
-      'task': 'post',
-      'board': board,
-      'thread': thread,
-      'captcha_type': '2chaptcha',
-      'comment': 'бамп',
-      '2chaptcha_id': captcha_id,
-      '2chaptcha_value': message.content
-    };
-    request.post({url:'https://2ch.hk/makaba/posting.fcgi?json=1', formData: formData}, function (error, response, body) {
-      request_response = JSON.parse(body);
-      if (error) { return message.channel.send(`Бамп прошел с ошибкой: ${error}`); }
-      if (request_response['Error']) {
-        if (request_response['Error'] === -3) {
-          message.channel.send(`Бамп прошел с ошибкой: ${body}`)
-          return stop_bump(message);
-        } else {
-          return message.channel.send(`Бамп прошел с ошибкой: ${body}`);
+    fs.readdir('./pack', (error, files) => {
+      let image = files[Math.floor(Math.random()*files.length)];
+      var formData = {
+        'task': 'post',
+        'board': board,
+        'thread': thread,
+        'captcha_type': '2chaptcha',
+        '2chaptcha_id': captcha_id,
+        '2chaptcha_value': message.content,
+        'image': {
+          value: fs.createReadStream(`./pack/${image}`),
+          options: {
+            filename: 'CP.webm',
+            contentType: 'image/jpeg'
+          }
         }
-      }
-      clearTimeout(timerCaptcha);
-      stats[message.author.username] = stats[message.author.username] ? stats[message.author.username]+1 : 1;
-      write_stats()
-      if ((bump_num--) <= 1) {
-        message.channel.send(`Бамп от ${message.author.username} прошел успешно. Количество бампов закончилось, останавливаем бапалку...`);
-        stop_bump(message)
-        return;
-      }
-      message.channel.send(`Бамп от ${message.author.username} прошел успешно, достаем следующую капчу`);
-      timerId = setTimeout(get_captcha, 20*1000, message);
+      };
+      request.post({url:'https://2ch.hk/makaba/posting.fcgi?json=1', formData: formData}, function (error, response, body) {
+        request_response = JSON.parse(body);
+        if (error) { return message.channel.send(`Бамп прошел с ошибкой: ${error}`); }
+        if (request_response['Error']) {
+          if (request_response['Error'] === -3) {
+            message.channel.send(`Бамп прошел с ошибкой: ${body}`)
+            return stop_bump(message);
+          } else {
+            return message.channel.send(`Бамп прошел с ошибкой: ${body}`);
+          }
+        }
+        clearTimeout(timerCaptcha);
+        stats[message.author.username] = stats[message.author.username] ? stats[message.author.username]+1 : 1;
+        write_stats()
+        if ((bump_num--) <= 1) {
+          message.channel.send(`Бамп от ${message.author.username} прошел успешно. Количество бампов закончилось, останавливаем бапалку...`);
+          stop_bump(message)
+          return;
+        }
+        message.channel.send(`Бамп от ${message.author.username} прошел успешно, достаем следующую капчу`);
+        timerId = setTimeout(get_captcha, 20*1000, message);
+      });
     });
   } else if (/^(?:stats ?.*)$/.test(message.content)) {
     if (message.content == 'stats') {
