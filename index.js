@@ -95,7 +95,7 @@ client.on('message', message => {
         'image': {
           value: fs.createReadStream(`./pack/${image}`),
           options: {
-            filename: 'CP.webm',
+            filename: ' ',
             contentType: 'image/jpeg'
           }
         }
